@@ -1,0 +1,84 @@
+//Query for State wise distribution (India)
+
+ALTER TABLE india_admin_area DROP COLUMN IF EXISTS TotalObjects;
+ALTER TABLE india_admin_area ADD COLUMN TotalObjects REAL DEFAULT 0.0;
+
+ALTER TABLE india_admin_area DROP COLUMN IF EXISTS TotalPoints;
+ALTER TABLE india_admin_area ADD COLUMN TotalPoints REAL DEFAULT 0.0;
+
+ALTER TABLE india_admin_area DROP COLUMN IF EXISTS TotalPolygons;
+ALTER TABLE india_admin_area ADD COLUMN TotalPolygons REAL DEFAULT 0.0;
+
+
+With PolygonQuery as (
+    SELECT ia.id,count(*) as NumPoints
+    FROM palace_point as pp, india_admin_area as ia
+    where ST_CONTAINS(ia.geom,pp.geom)
+    GROUP BY ia.id
+)
+UPDATE india_admin_area 
+SET TotalPoints = (PolygonQuery.NumPoints) 
+FROM PolygonQuery 
+WHERE india_admin_area.id = PolygonQuery.id;
+
+
+With PolygonQuery as (
+    SELECT ia.id,count(*) as Numpolygons
+    FROM palace_polygons as pp, india_admin_area as ia
+    where ST_CONTAINS(ia.geom,pp.geom)
+    GROUP BY ia.id
+)
+UPDATE india_admin_area 
+SET TotalPolygons = (PolygonQuery.Numpolygons) 
+FROM PolygonQuery 
+WHERE india_admin_area.id = PolygonQuery.id;
+
+UPDATE india_admin_area  set TotalObjects =  TotalPolygons +  TotalPoints
+
+select * from india_admin_area
+
+//Query for district wise distribution (Rajasthan)
+
+ALTER TABLE rajasthanarea DROP COLUMN IF EXISTS totalobjec;
+ALTER TABLE rajasthanarea ADD COLUMN totalobjec REAL DEFAULT 0.0;
+
+ALTER TABLE rajasthanarea DROP COLUMN IF EXISTS totalpoint;
+ALTER TABLE rajasthanarea ADD COLUMN totalpoint REAL DEFAULT 0.0;
+
+ALTER TABLE rajasthanarea DROP COLUMN IF EXISTS totalpolyg;
+ALTER TABLE rajasthanarea ADD COLUMN totalpolyg REAL DEFAULT 0.0;
+
+ALTER TABLE rajasthanarea DROP COLUMN IF EXISTS density;
+ALTER TABLE rajasthanarea ADD COLUMN density REAL DEFAULT 0.0;
+
+
+With PolygonQuery as (
+    SELECT ia.id,count(*) as NumPoints
+    FROM points_rajasthan as pr, rajasthanarea as ia
+    where ST_CONTAINS(ia.geom,pr.geom)
+    GROUP BY ia.id
+)
+UPDATE rajasthanarea 
+SET totalpoint = (PolygonQuery.NumPoints) 
+FROM PolygonQuery 
+WHERE rajasthanarea.id = PolygonQuery.id;
+
+
+With PolygonQuery as (
+    SELECT ia.id,count(*) as Numpolygons
+    FROM polygons_rajasthan as pp, rajasthanarea as ia
+    where ST_CONTAINS(ia.geom,pp.geom)
+    GROUP BY ia.id
+)
+UPDATE rajasthanarea 
+SET totalpolyg = (PolygonQuery.Numpolygons) 
+FROM PolygonQuery 
+WHERE rajasthanarea.id = PolygonQuery.id;
+
+
+UPDATE rajasthanarea  set totalobjec =  totalpolyg +  totalpoint
+
+UPDATE rajasthanarea SET 
+density = totalobjec/(ST_Area(ST_Transform(geom,4326))/1000000)
+
+select * from rajasthanarea
